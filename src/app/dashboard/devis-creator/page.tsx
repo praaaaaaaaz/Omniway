@@ -20,7 +20,7 @@ type El = TextEl|RectEl|LineEl|ImgEl|TableEl|TotEl
 
 type Guide = {axis:'x'|'y';pos:number}
 type Ligne = {id:string;designation:string;qte:string;pu:string;tva:number}
-type Artisan = {id:string;nom:string;entreprise:string;logo_url:string|null}
+type Artisan = {id:string;nom:string;entreprise:string;logo_url:string|null;signature_url:string|null;adresse:string|null;telephone:string|null;email:string|null;siret:string|null}
 type SavedTpl = {id:string;name:string;elems:El[];accent:string}
 
 /* ─── Utils ──────────────────────────────────────────────────────────────── */
@@ -157,9 +157,9 @@ function initElems(accent:string, variant:string, numero:string, artisan:Artisan
   els.push(mkT('e_cl_email',xL,clY+46,clW,'',{fontSize:10,color:'#555'},'clientEmail'))
   els.push(mkT('e_cl_adr', xL,clY+60, clW,'',{fontSize:10,color:'#555',lineHeight:1.5},'clientAdresse'))
 
-  /* ── Chantier ── */
+  /* ── Adresse du projet ── */
   const chX = isSidebar?460:390; const chW = isSidebar?292:364
-  els.push(mkT('e_ch_lbl',chX,clY,   chW,'CHANTIER / TRAVAUX',{fontSize:8.5,fontWeight:'bold',color:accent,textTransform:'uppercase',letterSpacing:2}))
+  els.push(mkT('e_ch_lbl',chX,clY,   chW,'ADRESSE DU PROJET',{fontSize:8.5,fontWeight:'bold',color:accent,textTransform:'uppercase',letterSpacing:2}))
   els.push(mkT('e_ch_adr',chX,clY+16,chW,'',{fontSize:11,color:'#333',lineHeight:1.5},'chantierAdresse'))
 
   /* ── Objet ── */
@@ -170,7 +170,7 @@ function initElems(accent:string, variant:string, numero:string, artisan:Artisan
   /* ── Table ── */
   const tblY = objY+30
   els.push({id:'table',type:'table',x:xL,y:tblY,w:wFull,
-    headers:['Désignation','Qté','PU HT','TVA','Total HT'],
+    headers:['N°','Désignation','Qté','PU HT','TVA','Total HT'],
     style:{accent,thBg:isMin?'#f3f4f6':accent,thCol:isMin?'#374151':'#fff'}
   } as TableEl)
 
@@ -178,21 +178,40 @@ function initElems(accent:string, variant:string, numero:string, artisan:Artisan
   const totY = tblY+205
   const totX = isSidebar?402:504; const totW = isSidebar?350:250
   const condW = isSidebar?225:446
-  els.push({id:'totaux',type:'totaux',x:totX,y:totY,w:totW,labels:['Total HT','TOTAL TTC'],style:{accent}} as TotEl)
+  els.push({id:'totaux',type:'totaux',x:totX,y:totY,w:totW,labels:['Total HT','Net à payer'],style:{accent}} as TotEl)
   els.push(mkT('e_cond_lbl',xL,totY,   condW,'Conditions de règlement',{fontSize:9.5,fontWeight:'bold',color:accent,textTransform:'uppercase',letterSpacing:1}))
   els.push(mkT('e_cond',    xL,totY+16,condW,'Paiement à 30 jours à réception de facture.\nAcompte de 30% à la commande.',{fontSize:10,color:'#555',lineHeight:1.6},'conditions'))
 
+  /* ── Mentions légales ── */
+  const mentY = totY+95
+  els.push(mkT('e_mention',xL,mentY,wFull,
+    "Le montant peut être révisé en fonction du temps réel passé sur le chantier et de l'ajustement des fournitures et/ou de leurs prix.",
+    {fontSize:8.5,color:'#888',lineHeight:1.5},'mentionLegale'))
+  els.push(mkT('e_tva_art',xL,mentY+26,wFull,
+    'TVA non applicable, article 293 B du Code Général des Impôts.',
+    {fontSize:8.5,color:'#888'},'mentionTVA'))
+
   /* ── Signature ── */
-  const sigY = totY+160
-  const sigW = isSidebar?272:330; const sig2X = xL+sigW+24; const sig2W = wFull-sigW-24
-  els.push(mkR('e_sig_l_bg', xL,  sigY,sigW,  80,{bg:'transparent',border:`1.5px dashed ${accent}55`,radius:8}))
-  els.push(mkR('e_sig_r_bg', sig2X,sigY,sig2W,80,{bg:'transparent',border:`1.5px dashed ${accent}55`,radius:8}))
-  els.push(mkT('e_sig_l', xL+8,  sigY+8,sigW-16,  "Bon pour accord\nSignature du client :",  {fontSize:9.5,color:'#aaa'}))
-  els.push(mkT('e_sig_r', sig2X+8,sigY+8,sig2W-16,"Cachet et signature\nde l'entreprise :",  {fontSize:9.5,color:'#aaa'}))
+  const sigY = mentY+52
+  const sigW = isSidebar?272:Math.floor(wFull/2)-12
+  const sig2X = xL+sigW+24; const sig2W = wFull-sigW-24
+
+  els.push(mkT('e_sig_l_title',xL,sigY,sigW,'Le client',{fontSize:10,fontWeight:'bold',color:'#333'}))
+  els.push(mkT('e_sig_l_text',xL,sigY+17,sigW,
+    "Mention datée et signée :\n« Devis reçu avant l'exécution des travaux.\nBon pour travaux. »",
+    {fontSize:8.5,color:'#999',fontStyle:'italic',lineHeight:1.5}))
+  els.push(mkR('e_sig_l_box',xL,sigY+62,sigW,78,{bg:'transparent',border:`1.5px dashed ${accent}44`,radius:8}))
+
+  els.push(mkT('e_sig_r_title',sig2X,sigY,sig2W,cs||"L'entreprise",{fontSize:10,fontWeight:'bold',color:'#333'}))
+  els.push(mkT('e_sig_r_text',sig2X,sigY+17,sig2W,
+    "Cachet et signature de l'entreprise :",
+    {fontSize:8.5,color:'#999'}))
+  els.push(mkR('e_sig_r_box',sig2X,sigY+34,sig2W,82,{bg:'transparent',border:`1.5px dashed ${accent}44`,radius:8}))
 
   /* ── Footer ── */
-  els.push(mkT('e_foot_l',xL,      1072,300,artisan?.entreprise||'',{fontSize:8,color:'#bbb'}))
-  els.push(mkT('e_foot_r',xL+300,  1072,wFull-300,'Document non contractuel avant validation',{fontSize:8,color:'#bbb',textAlign:'right'}))
+  const ftxt = [cn, artisan?.adresse||'', artisan?.telephone||''].filter(Boolean).join('  —  ')
+  els.push(mkL('e_foot_line',xL,1062,wFull,1,'#e5e7eb'))
+  els.push(mkT('e_foot',xL,1068,wFull,ftxt||'Document non contractuel avant validation',{fontSize:7.5,color:'#bbb',textAlign:'center'},'footerText'))
 
   return els
 }
@@ -215,7 +234,10 @@ function RenderText({el,isEditing,onSave}:{el:TextEl;isEditing:boolean;onSave:(t
 /* ─── Table renderer ─────────────────────────────────────────────────────── */
 function RenderTable({el,lignes,setLignes,isEditing,onHeader}:{el:TableEl;lignes:Ligne[];setLignes:(l:Ligne[])=>void;isEditing:boolean;onHeader:(i:number,v:string)=>void}) {
   const upd=(lid:string,f:keyof Ligne,v:string)=>setLignes(lignes.map(l=>l.id===lid?{...l,[f]:v}:l))
-  const cols=[{w:'38%',al:'left'as const},{w:'9%',al:'center'as const},{w:'16%',al:'right'as const},{w:'10%',al:'center'as const},{w:'17%',al:'right'as const}]
+  const has6=el.headers.length===6
+  const cols=has6
+    ?[{w:'6%',al:'center'as const},{w:'33%',al:'left'as const},{w:'10%',al:'center'as const},{w:'16%',al:'right'as const},{w:'9%',al:'center'as const},{w:'14%',al:'right'as const}]
+    :[{w:'38%',al:'left'as const},{w:'9%',al:'center'as const},{w:'16%',al:'right'as const},{w:'10%',al:'center'as const},{w:'17%',al:'right'as const}]
   return (
     <table style={{width:'100%',borderCollapse:'collapse',fontSize:10.5}}>
       <thead>
@@ -236,6 +258,7 @@ function RenderTable({el,lignes,setLignes,isEditing,onHeader}:{el:TableEl;lignes
           const bg=i%2===0?'#fff':`${el.style.accent}05`
           return (
             <tr key={l.id} style={{background:bg}}>
+              {has6&&<td style={{padding:'7px 8px',textAlign:'center',borderBottom:'1px solid #f0f0f0',color:'#999',fontSize:9.5,fontWeight:500,flexShrink:0}}>{i+1}</td>}
               <td style={{padding:'7px 10px',borderBottom:'1px solid #f0f0f0',color:'#111'}}>
                 {isEditing?<div contentEditable suppressContentEditableWarning onMouseDown={e=>e.stopPropagation()} onClick={e=>e.stopPropagation()} onBlur={e=>upd(l.id,'designation',e.currentTarget.textContent||'')} style={{outline:'none'}}>{l.designation}</div>:<span>{l.designation||<span style={{color:'#ccc',fontStyle:'italic'}}>Désignation...</span>}</span>}
               </td>
@@ -447,7 +470,7 @@ export default function DevisCreator() {
     ;(async()=>{
       const {data:{user}} = await supabase.auth.getUser()
       if(!user){router.push('/login');return}
-      const {data:a} = await supabase.from('artisans').select('id,nom,entreprise,logo_url').eq('id',user.id).single()
+      const {data:a} = await supabase.from('artisans').select('id,nom,entreprise,logo_url,signature_url,adresse,telephone,email,siret').eq('id',user.id).single()
       if(a) setArtisan(a)
     })()
   },[])
@@ -510,6 +533,19 @@ export default function DevisCreator() {
       setAiText('')
     } catch { setAiErr('Erreur réseau') }
     finally { setAiLoading(false) }
+  }
+
+  const insertSignature = () => {
+    if(!artisan?.signature_url) return
+    const box = elems.find(e=>e.id==='e_sig_r_box')
+    if(!box) return
+    const bh = ('h' in box ? box.h : 80) as number
+    const existing = elems.find(e=>e.id==='e_signature')
+    if(existing) {
+      commit(elems.map(e=>e.id==='e_signature'?{...e as ImgEl,src:artisan!.signature_url!}:e))
+    } else {
+      commit([...elems,{id:'e_signature',type:'img',x:box.x+8,y:box.y+8,w:box.w-16,h:bh-16,src:artisan.signature_url,style:{radius:4}} as ImgEl])
+    }
   }
 
   /* Pointer handlers */
@@ -830,6 +866,14 @@ export default function DevisCreator() {
               <FS title="Conditions">
                 <FTA value={fv('conditions')} onChange={v=>setField('conditions',v)} placeholder="Paiement à 30 jours..." rows={3}/>
               </FS>
+              {artisan?.signature_url&&(
+                <FS title="Signature">
+                  <div className="flex items-center gap-2">
+                    <img src={artisan.signature_url} alt="sig" className="h-10 rounded border border-gray-200 bg-gray-50 object-contain p-1"/>
+                    <button onClick={insertSignature} className="flex-1 text-xs border border-gray-200 rounded-lg px-3 py-1.5 text-gray-600 hover:border-blue-400 hover:text-blue-600 bg-white transition-colors">Insérer dans le devis</button>
+                  </div>
+                </FS>
+              )}
               </>}
             </div>
           </aside>

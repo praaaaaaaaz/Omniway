@@ -1,9 +1,9 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { supabase, type Devis } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 
-type Artisan = { id: string; nom: string; entreprise: string; google_review_url: string | null; logo_url: string | null }
+type Artisan = { id: string; nom: string; entreprise: string; google_review_url: string | null; logo_url: string | null; signature_url: string | null; adresse: string | null; telephone: string | null; email: string | null; siret: string | null }
 type DevisDoc = { id: string; numero: string; template: string; objet: string | null; client_nom: string; created_at: string; lignes: {qte:string;pu:string;tva:number}[] }
 
 const STATUT_META: Record<string, { color: string; bg: string; label: string }> = {
@@ -78,13 +78,17 @@ export default function Dashboard() {
   const [profile, setProfile] = useState({ nom: '', entreprise: '', google_review_url: '' })
   const [logoFile, setLogoFile] = useState<File | null>(null)
   const [form, setForm] = useState({ nom_client: '', email_client: '', montant: '', date_devis: new Date().toISOString().split('T')[0], notes: '' })
+  const sigCanvasRef = useRef<HTMLCanvasElement>(null)
+  const sigDrawing = useRef(false)
+  const [sigHasContent, setSigHasContent] = useState(false)
+  const [sigSaving, setSigSaving] = useState(false)
 
   useEffect(() => { loadData() }, [])
 
   const loadData = async () => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { router.push('/login'); return }
-    const { data: a } = await supabase.from('artisans').select('id,nom,entreprise,google_review_url,logo_url').eq('id', user.id).single()
+    const { data: a } = await supabase.from('artisans').select('id,nom,entreprise,google_review_url,logo_url,signature_url,adresse,telephone,email,siret').eq('id', user.id).single()
     if (a) { setArtisan(a); setProfile({ nom: a.nom||'', entreprise: a.entreprise||'', google_review_url: a.google_review_url||'' }) }
     const { data } = await supabase.from('devis').select('*').order('created_at', { ascending: false })
     setDevis(data || [])
@@ -122,6 +126,46 @@ export default function Dashboard() {
     setLogoFile(null)
     setTimeout(() => setProfileSaved(false), 2500)
     loadData()
+  }
+
+  const saveSignature = async () => {
+    if (!artisan || !sigCanvasRef.current) return
+    setSigSaving(true)
+    sigCanvasRef.current.toBlob(async (blob) => {
+      if (!blob) { setSigSaving(false); return }
+      const path = `${artisan.id}/signature.png`
+      const { error } = await supabase.storage.from('signatures').upload(path, blob, { upsert: true, contentType: 'image/png' })
+      if (!error) {
+        const { data } = supabase.storage.from('signatures').getPublicUrl(path)
+        await supabase.from('artisans').update({ signature_url: data.publicUrl }).eq('id', artisan.id)
+        loadData()
+      }
+      setSigSaving(false)
+    }, 'image/png')
+  }
+
+  const clearSignature = () => {
+    const c = sigCanvasRef.current; if (!c) return
+    const ctx = c.getContext('2d'); if (!ctx) return
+    ctx.clearRect(0, 0, c.width, c.height)
+    setSigHasContent(false)
+  }
+
+  const onSigPointer = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    const c = sigCanvasRef.current; if (!c) return
+    const ctx = c.getContext('2d'); if (!ctx) return
+    const r = c.getBoundingClientRect()
+    const x = (e.clientX - r.left) * (c.width / r.width)
+    const y = (e.clientY - r.top) * (c.height / r.height)
+    if (e.type === 'pointerdown') {
+      sigDrawing.current = true; c.setPointerCapture(e.pointerId)
+      ctx.beginPath(); ctx.moveTo(x, y)
+    } else if (e.type === 'pointermove' && sigDrawing.current) {
+      ctx.lineTo(x, y); ctx.strokeStyle = '#111'; ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.stroke()
+      setSigHasContent(true)
+    } else if (e.type === 'pointerup') {
+      sigDrawing.current = false
+    }
   }
 
   const toggleAvis = async (id: string, current: boolean) => {
@@ -244,6 +288,30 @@ export default function Dashboard() {
                 {profileSaved ? '✓ Sauvegardé' : profileSaving ? 'Sauvegarde...' : 'Sauvegarder'}
               </button>
             </form>
+
+            {/* ── Signature ── */}
+            <div className="mt-6 pt-6 border-t border-gray-100">
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Signature / Cachet</label>
+              {artisan?.signature_url && (
+                <div className="mb-3 flex items-center gap-3">
+                  <img src={artisan.signature_url} alt="signature" className="h-16 rounded-lg border border-gray-200 bg-gray-50 object-contain p-1"/>
+                  <span className="text-xs text-green-600 font-medium">✓ Signature enregistrée</span>
+                </div>
+              )}
+              <p className="text-xs text-gray-400 mb-2">Dessinez votre signature ci-dessous (souris ou doigt) :</p>
+              <div className="relative rounded-xl border-2 border-dashed border-gray-200 bg-gray-50 overflow-hidden" style={{height:120}}>
+                <canvas ref={sigCanvasRef} width={480} height={120}
+                  style={{width:'100%',height:'100%',touchAction:'none',cursor:'crosshair'}}
+                  onPointerDown={onSigPointer} onPointerMove={onSigPointer} onPointerUp={onSigPointer}/>
+                {!sigHasContent&&<div className="absolute inset-0 flex items-center justify-center pointer-events-none"><span className="text-gray-300 text-sm">Signez ici...</span></div>}
+              </div>
+              <div className="flex gap-2 mt-2">
+                <button onClick={clearSignature} className="flex-1 py-2 rounded-xl text-xs border border-gray-200 text-gray-500 hover:bg-gray-50">Effacer</button>
+                <button onClick={saveSignature} disabled={!sigHasContent||sigSaving} className="flex-1 py-2 rounded-xl text-xs font-semibold bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-40">
+                  {sigSaving ? 'Sauvegarde...' : 'Sauvegarder la signature'}
+                </button>
+              </div>
+            </div>
           </div>
         )}
 
