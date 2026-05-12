@@ -651,91 +651,65 @@ export default function DevisCreator() {
           <button onClick={()=>window.print()} className="text-white px-3 py-1.5 rounded-lg text-sm font-semibold" style={{background:accent}}>PDF</button>
         </header>
 
-        {/* ── Canva-style format toolbar ── */}
-        {textSel&&(
-          <div style={{height:52,background:'#fff',borderBottom:'1px solid #e5e7eb',display:'flex',alignItems:'center',padding:'0 14px',gap:2,flexShrink:0,overflowX:'auto'}}>
-            {/* Police */}
-            <div style={{position:'relative',marginRight:2}}>
-              <select value={textSel.style.fontFamily||DFONT} onChange={e=>updStyle(textSel.id,{fontFamily:e.target.value})}
-                style={{border:'1px solid #e5e7eb',borderRadius:7,padding:'5px 26px 5px 10px',fontSize:13,color:'#111',background:'#fff',cursor:'pointer',minWidth:108,fontFamily:textSel.style.fontFamily||DFONT,appearance:'none',outline:'none'}}>
-                {FONTS.map(f=><option key={f.value} value={f.value}>{f.label}</option>)}
-              </select>
-              <span style={{position:'absolute',right:8,top:'50%',transform:'translateY(-50%)',pointerEvents:'none',fontSize:10,color:'#6b7280'}}>▾</span>
-            </div>
-            <div style={{width:1,height:24,background:'#e5e7eb',margin:'0 4px',flexShrink:0}}/>
-            {/* Taille */}
-            <div style={{display:'flex',alignItems:'center',border:'1px solid #e5e7eb',borderRadius:7,overflow:'hidden'}}>
-              <button onClick={()=>updStyle(textSel.id,{fontSize:Math.max(6,(textSel.style.fontSize||11)-1)})}
-                style={{width:28,height:32,border:'none',background:'#fff',cursor:'pointer',fontSize:17,color:'#374151',lineHeight:1,display:'flex',alignItems:'center',justifyContent:'center'}}>−</button>
-              <input type="number" min={6} max={72} value={textSel.style.fontSize||11}
-                onChange={e=>updStyle(textSel.id,{fontSize:+e.target.value})}
-                style={{width:38,height:32,border:'none',borderLeft:'1px solid #e5e7eb',borderRight:'1px solid #e5e7eb',textAlign:'center',fontSize:13,color:'#111',outline:'none'}}/>
-              <button onClick={()=>updStyle(textSel.id,{fontSize:Math.min(72,(textSel.style.fontSize||11)+1)})}
-                style={{width:28,height:32,border:'none',background:'#fff',cursor:'pointer',fontSize:17,color:'#374151',lineHeight:1,display:'flex',alignItems:'center',justifyContent:'center'}}>+</button>
-            </div>
-            <div style={{width:1,height:24,background:'#e5e7eb',margin:'0 4px',flexShrink:0}}/>
-            {/* Couleur texte */}
-            <div style={{position:'relative',width:32,height:32,flexShrink:0}}>
-              <input type="color" value={textSel.style.color||'#111111'} onChange={e=>updStyle(textSel.id,{color:e.target.value})}
-                style={{position:'absolute',inset:0,opacity:0,width:'100%',height:'100%',cursor:'pointer',border:'none',padding:0}}/>
-              <div style={{width:32,height:32,borderRadius:7,border:'1px solid #e5e7eb',pointerEvents:'none',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:2,paddingTop:2}}>
-                <span style={{fontWeight:700,fontSize:14,color:textSel.style.color||'#111',lineHeight:1}}>A</span>
-                <div style={{width:18,height:3,borderRadius:2,background:textSel.style.color&&textSel.style.color!=='#111111'?textSel.style.color:'linear-gradient(90deg,#f00,#ff0,#0f0,#0ff,#00f,#f0f)'}}/>
-              </div>
-            </div>
-            {/* B I U */}
-            {([['fontWeight','bold','B',{fontWeight:800,fontSize:14}],['fontStyle','italic','I',{fontStyle:'italic' as const,fontSize:14}],['textDecoration','underline','U',{textDecoration:'underline',fontSize:14}]] as [keyof TS,string,string,React.CSSProperties][]).map(([prop,val,label,labelStyle])=>{
-              const active=(textSel.style[prop]===val)
-              return (
-                <button key={prop} onClick={()=>updStyle(textSel.id,{[prop]:active?undefined:val})}
-                  style={{width:32,height:32,borderRadius:7,border:'1px solid',borderColor:active?'#d1d5db':'transparent',background:active?'#f3f4f6':'#fff',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
-                  <span style={labelStyle}>{label}</span>
-                </button>
-              )
-            })}
-            <div style={{width:1,height:24,background:'#e5e7eb',margin:'0 4px',flexShrink:0}}/>
-            {/* Alignement */}
-            {(['left','center','right'] as const).map((al,i)=>{
-              const active=(textSel.style.textAlign||'left')===al
-              const lines=[[0,14],[0,10],[0,12]].map((_,li)=>{
-                const xs=[0,i===1?2:i===2?4:0][0]??0
-                const ws=[14,i===1?10:i===2?10:10,i===1?12:i===2?12:12]
-                return {x:li===0?0:li===1?(i===0?0:i===1?2:4):li===2?(i===0?0:i===1?1:2):0,w:[14,10,12][li]}
-              })
-              return (
-                <button key={al} title={['Gauche','Centré','Droite'][i]} onClick={()=>updStyle(textSel.id,{textAlign:al})}
-                  style={{width:32,height:32,borderRadius:7,border:'1px solid',borderColor:active?'#d1d5db':'transparent',background:active?'#f3f4f6':'#fff',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
-                  <svg width="14" height="11" viewBox="0 0 14 11" fill="#374151">
-                    {i===0&&<><rect x="0" y="0" width="14" height="2" rx="1"/><rect x="0" y="4.5" width="10" height="2" rx="1"/><rect x="0" y="9" width="12" height="2" rx="1"/></>}
-                    {i===1&&<><rect x="0" y="0" width="14" height="2" rx="1"/><rect x="2" y="4.5" width="10" height="2" rx="1"/><rect x="1" y="9" width="12" height="2" rx="1"/></>}
-                    {i===2&&<><rect x="0" y="0" width="14" height="2" rx="1"/><rect x="4" y="4.5" width="10" height="2" rx="1"/><rect x="2" y="9" width="12" height="2" rx="1"/></>}
-                  </svg>
-                </button>
-              )
-            })}
-            <div style={{width:1,height:24,background:'#e5e7eb',margin:'0 4px',flexShrink:0}}/>
-            {/* Largeur */}
-            <span style={{fontSize:10,color:'#9ca3af',flexShrink:0}}>L</span>
-            <input type="number" min={20} value={Math.round(textSel.w)}
-              onChange={e=>commit(elems.map(el=>el.id===textSel.id?{...el,w:Math.max(20,+e.target.value)}:el))}
-              style={{width:50,border:'1px solid #e5e7eb',borderRadius:7,padding:'3px 5px',fontSize:11,color:'#111',textAlign:'center',outline:'none'}}/>
-            <div style={{flex:1,minWidth:8}}/>
-            <button onClick={()=>{commit(elems.filter(e=>e.id!==selected));setSelected(null)}}
-              style={{fontSize:12,color:'#ef4444',border:'1px solid #fecaca',borderRadius:7,padding:'6px 14px',background:'#fff',cursor:'pointer',flexShrink:0,whiteSpace:'nowrap'}}>
-              ✕ Supprimer
-            </button>
-          </div>
-        )}
 
         <div className="flex flex-1 overflow-hidden">
           {/* ── Form panel ── */}
           <aside className="w-72 bg-white border-r border-gray-100 overflow-y-auto flex-shrink-0 text-sm">
             <div className="p-4 flex flex-col gap-4">
               <div className="flex items-center gap-2 pb-2 border-b border-gray-100">
-                <span className="text-sm font-bold text-gray-800">Formulaire</span>
-                <span className="text-[10px] text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">sync auto</span>
+                <span className="text-sm font-bold text-gray-800">{textSel?'Style du texte':'Formulaire'}</span>
+                {!textSel&&<span className="text-[10px] text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">sync auto</span>}
+                {textSel&&<span className="text-[10px] text-blue-500 bg-blue-50 px-2 py-0.5 rounded-full">élément sélectionné</span>}
               </div>
 
+              {/* ── Style panel (replaces floating toolbar) ── */}
+              {textSel&&(
+                <div className="flex flex-col gap-2">
+                  <select value={textSel.style.fontFamily||DFONT} onChange={e=>updStyle(textSel.id,{fontFamily:e.target.value})}
+                    className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-xs text-gray-900 bg-white focus:outline-none focus:border-blue-400"
+                    style={{fontFamily:textSel.style.fontFamily||DFONT}}>
+                    {FONTS.map(f=><option key={f.value} value={f.value} style={{fontFamily:f.value}}>{f.label}</option>)}
+                  </select>
+                  <div className="flex items-center gap-1 flex-wrap">
+                    <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden">
+                      <button onClick={()=>updStyle(textSel.id,{fontSize:Math.max(6,(textSel.style.fontSize||11)-1)})} style={{width:24,height:26,border:'none',background:'#fff',cursor:'pointer',fontSize:15,color:'#374151',display:'flex',alignItems:'center',justifyContent:'center'}}>−</button>
+                      <input type="number" min={6} max={72} value={textSel.style.fontSize||11} onChange={e=>updStyle(textSel.id,{fontSize:+e.target.value})} style={{width:32,height:26,border:'none',borderLeft:'1px solid #e5e7eb',borderRight:'1px solid #e5e7eb',textAlign:'center',fontSize:11,color:'#111',outline:'none'}}/>
+                      <button onClick={()=>updStyle(textSel.id,{fontSize:Math.min(72,(textSel.style.fontSize||11)+1)})} style={{width:24,height:26,border:'none',background:'#fff',cursor:'pointer',fontSize:15,color:'#374151',display:'flex',alignItems:'center',justifyContent:'center'}}>+</button>
+                    </div>
+                    <div style={{width:1,height:20,background:'#e5e7eb',flexShrink:0}}/>
+                    {([['fontWeight','bold','B',{fontWeight:800,fontSize:13}],['fontStyle','italic','I',{fontStyle:'italic' as const,fontSize:13}],['textDecoration','underline','U',{textDecoration:'underline',fontSize:13}]] as [keyof TS,string,string,React.CSSProperties][]).map(([prop,val,label,labelStyle])=>{
+                      const active=(textSel.style[prop]===val)
+                      return <button key={prop} onClick={()=>updStyle(textSel.id,{[prop]:active?undefined:val})} style={{width:26,height:26,borderRadius:6,border:'1px solid',borderColor:active?'#d1d5db':'transparent',background:active?'#f3f4f6':'#fff',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><span style={labelStyle}>{label}</span></button>
+                    })}
+                    <div style={{width:1,height:20,background:'#e5e7eb',flexShrink:0}}/>
+                    {(['left','center','right'] as const).map((al,i)=>{
+                      const active=(textSel.style.textAlign||'left')===al
+                      return <button key={al} onClick={()=>updStyle(textSel.id,{textAlign:al})} style={{width:26,height:26,borderRadius:6,border:'1px solid',borderColor:active?'#d1d5db':'transparent',background:active?'#f3f4f6':'#fff',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                        <svg width="12" height="10" viewBox="0 0 14 11" fill="#374151">
+                          {i===0&&<><rect x="0" y="0" width="14" height="2" rx="1"/><rect x="0" y="4.5" width="10" height="2" rx="1"/><rect x="0" y="9" width="12" height="2" rx="1"/></>}
+                          {i===1&&<><rect x="0" y="0" width="14" height="2" rx="1"/><rect x="2" y="4.5" width="10" height="2" rx="1"/><rect x="1" y="9" width="12" height="2" rx="1"/></>}
+                          {i===2&&<><rect x="0" y="0" width="14" height="2" rx="1"/><rect x="4" y="4.5" width="10" height="2" rx="1"/><rect x="2" y="9" width="12" height="2" rx="1"/></>}
+                        </svg>
+                      </button>
+                    })}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div style={{position:'relative',width:26,height:26,flexShrink:0}}>
+                      <input type="color" value={textSel.style.color||'#111111'} onChange={e=>updStyle(textSel.id,{color:e.target.value})} style={{position:'absolute',inset:0,opacity:0,width:'100%',height:'100%',cursor:'pointer',border:'none',padding:0}}/>
+                      <div style={{width:26,height:26,borderRadius:6,border:'1px solid #e5e7eb',pointerEvents:'none',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:1}}>
+                        <span style={{fontWeight:700,fontSize:12,color:textSel.style.color||'#111',lineHeight:1}}>A</span>
+                        <div style={{width:14,height:2.5,borderRadius:1,background:textSel.style.color||'#111'}}/>
+                      </div>
+                    </div>
+                    <span className="text-[10px] text-gray-400">L</span>
+                    <input type="number" min={20} value={Math.round(textSel.w)} onChange={e=>commit(elems.map(el=>el.id===textSel.id?{...el,w:Math.max(20,+e.target.value)}:el))} className="w-14 border border-gray-200 rounded-lg px-1 py-1 text-xs text-gray-900 text-center bg-white focus:outline-none"/>
+                    <button onClick={()=>{commit(elems.filter(e=>e.id!==selected));setSelected(null)}} className="ml-auto text-xs text-red-400 border border-red-100 rounded-lg px-2 py-1 bg-white hover:bg-red-50 whitespace-nowrap">✕ Suppr.</button>
+                  </div>
+                  <button onClick={()=>setSelected(null)} className="text-[10px] text-gray-400 hover:text-gray-600 text-left">← Retour au formulaire</button>
+                </div>
+              )}
+
+              {!textSel&&<>
               {/* ── AI input ── */}
               <div className="rounded-xl border border-violet-200 bg-violet-50 p-3 flex flex-col gap-2">
                 <div className="flex items-center gap-1.5">
@@ -856,6 +830,7 @@ export default function DevisCreator() {
               <FS title="Conditions">
                 <FTA value={fv('conditions')} onChange={v=>setField('conditions',v)} placeholder="Paiement à 30 jours..." rows={3}/>
               </FS>
+              </>}
             </div>
           </aside>
 

@@ -1,7 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server'
-import Anthropic from '@anthropic-ai/sdk'
+import Groq from 'groq-sdk'
 
-const client = new Anthropic()
+const KEYS = (process.env.GROQ_KEYS || process.env.GROQ_API_KEY || '').split(',').map(k => k.trim()).filter(Boolean)
+
+async function callGroq(prompt: string): Promise<string> {
+  let lastErr: unknown
+  for (const key of KEYS) {
+    try {
+      const groq = new Groq({ apiKey: key })
+      const res = await groq.chat.completions.create({
+        model: 'llama-3.1-8b-instant',
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: 1024,
+        temperature: 0.1,
+      })
+      return res.choices[0]?.message?.content?.trim() || ''
+    } catch (e: any) {
+      lastErr = e
+      if (e?.status === 429 || e?.message?.includes('rate') || e?.message?.includes('quota')) continue
+      throw e
+    }
+  }
+  throw lastErr
+}
 
 export async function POST(req: NextRequest) {
   const { text, today } = await req.json()
@@ -15,36 +36,28 @@ Date du jour : ${today}
 
 Reponds UNIQUEMENT avec du JSON valide, sans markdown, sans explication.
 
-Format attendu :
+Format :
 {
-  "clientNom": "civilite + nom ou nom societe",
-  "clientAdresse": "adresse complete sur une ligne",
-  "chantierAdresse": "adresse chantier si differente, sinon vide",
-  "objet": "description courte des travaux",
+  "clientNom": "civilite + nom (ex: M. Dupont, Mme Martin)",
+  "clientAdresse": "adresse complete du client sur une ligne",
+  "chantierAdresse": "adresse du chantier UNIQUEMENT si explicitement differente de l'adresse du client, sinon string vide",
+  "objet": "description courte des travaux (ex: Renovation cuisine 20m2)",
   "lignes": [
-    { "designation": "description prestation", "qte": "1", "pu": "montant HT en chiffres seulement", "tva": 10 }
+    { "designation": "description de la prestation avec superficie si mentionnee", "qte": "1", "pu": "montant en chiffres HT (le montant donne est considere HORS TAXE par defaut)", "tva": 10 }
   ],
   "date": "date en YYYY-MM-DD"
 }
 
-Regles :
-- Si montant TTC avec TVA 10%, divise par 1.1 pour HT
-- Si pas de TVA precisee, utilise 10
-- Si pas de montant, laisse pu vide string
-- Si "notre date" ou "aujourd hui", utilise la date du jour fournie
-- Inclure la civilite dans clientNom si mentionnee
-- Inclure superficie dans designation si mentionnee`
+Regles importantes :
+- Le montant donne EST le prix HT, ne pas diviser. Sauf si "TTC" est explicitement mentionne dans le texte.
+- Si "notre date", "aujourd hui", "la date du jour" : utiliser ${today}
+- Si les travaux sont chez le client (sa maison, chez lui, a domicile) : chantierAdresse = ""
+- TVA par defaut : 10. Si pas mentionne, mettre 10.
+- Inclure la superficie dans la designation si mentionnee`
 
-  const msg = await client.messages.create({
-    model: 'claude-haiku-4-5-20251001',
-    max_tokens: 1024,
-    messages: [{ role: 'user', content: prompt }]
-  })
-
-  const raw = (msg.content[0] as { type: string; text: string }).text.trim()
+  const raw = await callGroq(prompt)
   try {
-    const data = JSON.parse(raw)
-    return NextResponse.json(data)
+    return NextResponse.json(JSON.parse(raw))
   } catch {
     const match = raw.match(/\{[\s\S]*\}/)
     if (match) {
